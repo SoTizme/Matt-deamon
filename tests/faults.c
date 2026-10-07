@@ -1,6 +1,8 @@
 #define _GNU_SOURCE
 #include <dlfcn.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <stdarg.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +30,22 @@ static int failed(const char *name) {
         return 1;
     }
     return 0;
+}
+
+int open(const char *path, int flags, ...) {
+    static int (*real)(const char *, int, ...);
+    mode_t mode = 0;
+    if ((flags & O_CREAT) || ((flags & O_TMPFILE) == O_TMPFILE)) {
+        va_list args;
+        va_start(args, flags);
+        mode = va_arg(args, mode_t);
+        va_end(args);
+    }
+    if (failed("open"))
+        return -1;
+    if (!real)
+        real = dlsym(RTLD_NEXT, "open");
+    return real(path, flags, mode);
 }
 
 #define WRAP(type, name, args, call) \

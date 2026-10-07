@@ -384,12 +384,15 @@ def fault_tests():
                        check=True, timeout=30)
         def environment(name):
             return dict(os.environ, LD_PRELOAD=library, MATT_TEST_FAIL=name)
-        for name in ["mkdir", "flock", "socket", "setsockopt", "bind", "listen",
+        for name in ["mkdir", "open", "flock", "socket", "setsockopt", "bind", "listen",
                      "pipe", "fork", "setsid", "chdir", "dup2", "sigaction", "sigprocmask"]:
             offset = LOG.stat().st_size
             result = invoke(env=environment(name))
             require(result.returncode != 0 and result.stderr, name + " startup reported success")
-            if name not in {"mkdir", "flock"}:
+            if name == "open":
+                require("Can't open :/var/lock/matt_daemon.lock" in result.stderr,
+                        "lock-open failure did not name its path")
+            if name not in {"mkdir", "open", "flock"}:
                 require("[ ERROR ]" in log_after(offset), name + " failure not logged")
             lock_free()
             port_free()
