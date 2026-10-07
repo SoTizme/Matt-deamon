@@ -9,11 +9,36 @@
 #include <stdexcept>
 #include <string>
 #include <sys/file.h>
+#include <signal.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 namespace {
 const char* const LOCK_PATH = "/var/lock/matt_daemon.lock";
+volatile sig_atomic_t receivedSignal = 0;
+
+void recordSignal(int number) {
+    if (receivedSignal == 0)
+        receivedSignal = number;
+}
+
+void installSignals() {
+    struct sigaction action = {};
+    action.sa_handler = recordSignal;
+    if (sigfillset(&action.sa_mask) == -1)
+        throw std::runtime_error("Failed to initialize signal mask.");
+    for (int number = 1; number < NSIG; ++number) {
+        if (number == SIGKILL || number == SIGSTOP)
+            continue;
+        // A recurring synchronous fault cannot be recovered by returning.
+        action.sa_flags = (number == SIGSEGV || number == SIGBUS
+                           || number == SIGFPE || number == SIGILL
+                           || number == SIGTRAP) ? SA_RESETHAND : 0;
+        if (sigaction(number, &action, NULL) == -1 && errno != EINVAL)
+            throw std::runtime_error(std::string("sigaction: ")
+                                     + std::strerror(errno));
+    }
+}
 
 std::runtime_error systemError(const std::string& action) {
     return std::runtime_error(action + ": " + std::strerror(errno));
@@ -76,6 +101,7 @@ bool MattDaemon::daemonize() {
 
     close(startup[0]);
     try {
+        installSignals();
         if (setsid() == -1)
             throw systemError("setsid");
         if (chdir("/") == -1)
@@ -213,7 +239,7 @@ bool MattDaemon::readClient(int index) {
 }
 
 void MattDaemon::serve() {
-    for (;;) {
+    while (receivedSignal == 0) {
         fd_set readable;
         FD_ZERO(&readable);
         FD_SET(_serverFd, &readable);
@@ -225,12 +251,17 @@ void MattDaemon::serve() {
                     highest = _clients[index];
             }
         }
-        const int result = select(highest + 1, &readable, NULL, NULL, NULL);
+        // Recreated each iteration: select may modify its timeout.
+        // A bounded wait covers a signal arriving just before select starts.
+        struct timeval timeout = {1, 0};
+        const int result = select(highest + 1, &readable, NULL, NULL, &timeout);
         if (result == -1) {
             if (errno == EINTR)
                 continue;
             throw systemError("select");
         }
+        if (receivedSignal != 0)
+            break;
         // Service existing clients before admitting a queued connection.
         for (int index = 0; index < MAX_CLIENTS; ++index) {
             if (_clients[index] != -1 && FD_ISSET(_clients[index], &readable)
@@ -252,6 +283,19 @@ void MattDaemon::run() {
         if (!daemonize())
             return;
         serve();
+        if (receivedSignal != 0)
+            _reporter.info("Signal received: " + std::to_string(receivedSignal)
+                           + " (" + strsignal(receivedSignal) + ").");
+        for (int index = 0; index < MAX_CLIENTS; ++index) {
+            if (_clients[index] != -1) {
+                if (!_pending[index].empty())
+                    finishMessage(index, false);
+                closeClient(index);
+            }
+        }
+        close(_serverFd);
+        _serverFd = -1;
+        _reporter.info("Server closed.");
         _reporter.info("Quitting.");
     } catch (const std::exception& error) {
         try { _reporter.error(error.what()); } catch (...) {}
