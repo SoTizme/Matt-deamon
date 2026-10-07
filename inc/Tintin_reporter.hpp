@@ -13,6 +13,7 @@ public:
 
     void open();
     void info(const std::string& message);
+    void input(const std::string& message);
     void error(const std::string& message);
 
 private:

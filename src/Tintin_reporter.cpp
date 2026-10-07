@@ -30,6 +30,10 @@ void Tintin_reporter::info(const std::string& message) {
     write("INFO", message);
 }
 
+void Tintin_reporter::input(const std::string& message) {
+    write("LOG", "User input: " + message);
+}
+
 void Tintin_reporter::error(const std::string& message) {
     write("ERROR", message);
 }
