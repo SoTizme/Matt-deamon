@@ -16,6 +16,7 @@ private:
     int _lockFd;
     Tintin_reporter _reporter;
     void acquireLock();
+    bool daemonize();
 };
 
 #endif
