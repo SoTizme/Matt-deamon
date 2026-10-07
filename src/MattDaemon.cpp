@@ -38,6 +38,12 @@ void installSignals() {
             throw std::runtime_error(std::string("sigaction: ")
                                      + std::strerror(errno));
     }
+    // Do not inherit a caller's blocked termination signals.
+    sigset_t unblocked;
+    if (sigemptyset(&unblocked) == -1
+        || sigprocmask(SIG_SETMASK, &unblocked, NULL) == -1)
+        throw std::runtime_error(std::string("sigprocmask: ")
+                                 + std::strerror(errno));
 }
 
 std::runtime_error systemError(const std::string& action) {
@@ -196,6 +202,7 @@ bool MattDaemon::finishMessage(int index, bool newline) {
     if (newline && !message.empty() && message[message.size() - 1] == '\r')
         message.erase(message.size() - 1);
     if (!_continued[index] && message == "quit") {
+        message.clear();
         _reporter.info("Request quit.");
         return false;
     }
@@ -212,8 +219,10 @@ bool MattDaemon::readClient(int index) {
         if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
             return true;
         _reporter.error(std::string("recv: ") + std::strerror(errno));
+        const bool keepRunning = _pending[index].empty()
+            || finishMessage(index, false);
         closeClient(index);
-        return true;
+        return keepRunning;
     }
     if (count == 0) {
         const bool keepRunning = _pending[index].empty()
