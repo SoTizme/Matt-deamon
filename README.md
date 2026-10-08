@@ -41,7 +41,9 @@ nc localhost 4242
 ```
 
 In netcat, type messages and press Enter after each. Type `quit` and press Enter
-to stop the daemon. Check its log with:
+to stop the daemon. Some Ubuntu netcat versions keep waiting for keyboard input
+after the daemon closes the connection; press Ctrl+D to exit netcat. This is
+separate from the daemon shutdown. Check its log with:
 
 ```sh
 sudo tail -20 /var/log/matt_daemon/matt_daemon.log
