@@ -13,7 +13,7 @@ Production files use 42 headers, plain member names, camelCase methods,
 explicit constructors/destructors and colocated class headers. Like Webserv's
 [Makefile](https://github.com/SoTizme/Webserv/blob/6cbbabda5ac64ebee0a4042f0932b6a00db0d5e7/Makefile),
 the build uses `c++`, `-Wall -Wextra -Werror -std=c++98`, grouped file lists
-and `addprefix`. Generated header dependencies keep incremental builds correct.
+and `addprefix`. Headers are listed directly as prerequisites to keep incremental builds correct.
 C++98 is a project choice; subject version 4.3 permits any C++ version and
 leaves file naming and layout free.
 
@@ -60,7 +60,7 @@ sudo ./Matt_daemon
 sudo kill -TERM "$(pgrep -x Matt_daemon)"
 ```
 
-`make clean` removes object/dependency files. `make fclean` also removes the
+`make clean` removes object files. `make fclean` also removes the
 executable. `make re` rebuilds from scratch. Header dependencies and parallel
 builds are supported.
 

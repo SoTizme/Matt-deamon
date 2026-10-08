@@ -19,19 +19,18 @@ CC = c++
 FLAGS = -Wall -Wextra -Werror -std=c++98
 
 OBJS = $(FILES:.cpp=.o) $(IFILES:.cpp=.o) $(DFILES:.cpp=.o)
-DEPS = $(OBJS:.o=.d)
 
 all: $(NAME)
 
-%.o: %.cpp Makefile
-	$(CC) $(FLAGS) -MMD -MP -c $< -o $@
+%.o: %.cpp $(IHFILES) $(DHFILES) Makefile
+	$(CC) $(FLAGS) -c $< -o $@
 
 $(NAME): $(OBJS)
 	$(CC) $(FLAGS) $(OBJS) -o $(NAME)
 
 clean:
 	@echo "Cleaning object files"
-	@rm -f $(OBJS) $(DEPS)
+	@rm -f $(OBJS)
 
 fclean: clean
 	@echo "Cleaning executable file"
@@ -39,7 +38,5 @@ fclean: clean
 
 re: fclean
 	$(MAKE) all
-
--include $(DEPS)
 
 .PHONY: all clean fclean re

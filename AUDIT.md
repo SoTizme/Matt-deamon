@@ -14,7 +14,7 @@ The current C++98 layout and coding conventions follow the Webserv files with
 `main.cpp` is at the root, daemon methods are split by purpose in `daemon/`,
 and the reporter implementation and header are together in `include/`.
 The Makefile follows Webserv's grouped source lists and C++98 flags, with
-header dependency tracking. The migration passed the full 104-check suite
+explicit header prerequisites. The migration passed the full 104-check suite
 and strict C++98 compilation. The mandatory behavior and two-class design
 remain the same.
 

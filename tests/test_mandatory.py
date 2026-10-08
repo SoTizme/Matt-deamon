@@ -168,11 +168,12 @@ def build():
         os.utime(header, ns=previous_times)
     make("clean")
     require(Path(BINARY).exists()
-            and all(not p.exists() and not p.with_suffix(".d").exists()
-                    for p in object_files), "clean rule")
+            and all(not p.exists() for p in object_files), "clean rule")
     make("fclean")
     require(not Path(BINARY).exists(), "fclean rule")
     make("-j4")
+    require(all(not p.with_suffix(".d").exists() for p in object_files),
+            "build generated unwanted .d files")
     passed("all, clean, fclean, re, parallel build, incremental make and header dependencies")
     source_files = [ROOT / "main.cpp"]
     for directory in ["daemon", "include"]:
