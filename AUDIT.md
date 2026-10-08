@@ -7,6 +7,17 @@ and test, quit stopped the daemon, and restart/SIGTERM left no process, held loc
 or occupied port. The system reaped those daemon launches without the test
 subreaper.
 
+## Style migration
+
+The current C++98 layout and coding conventions follow the Webserv files with
+`By: shilal` headers at commit `6cbbabda5ac64ebee0a4042f0932b6a00db0d5e7`.
+`main.cpp` is at the root, daemon methods are split by purpose in `daemon/`,
+and the reporter implementation and header are together in `include/`.
+The Makefile follows Webserv's grouped source lists and C++98 flags, with
+header dependency tracking. The migration passed the full 104-check suite
+and strict C++98 compilation. The mandatory behavior and two-class design
+remain the same.
+
 ## Severity review
 
 - **FAIL, fixed:** If the caller closed stdin, the lock could occupy descriptor 0
@@ -25,7 +36,7 @@ subreaper.
 
 | Requirement | Evidence |
 | --- | --- |
-| C++ executable `Matt_daemon`; Makefile all/clean/fclean/re | Warning-as-error C++11 build; all targets, parallel make and no-op incremental make pass. |
+| C++ executable `Matt_daemon`; Makefile all/clean/fclean/re | Warning-as-error C++98 build, also with `-pedantic-errors`; all targets, parallel make, no-op incremental make and header-triggered rebuild pass. |
 | Root only | Real UID 0 with non-root effective UID is rejected on stderr; no log/lock changes. Running child has effective UID 0. |
 | Explicit fork; no `daemon()` | Source audit; detached live child is its own session/group leader, has no controlling terminal, cwd / and stdio /dev/null. |
 | Startup errors visible | Listener created before fork. Startup pipe propagates child detachment failures to the parent; forced fork/setsid/chdir/dup2 failures produce nonzero startup status. |
@@ -41,7 +52,7 @@ subreaper.
 | Cleanup and no descriptor leaks | Startup has six expected descriptors. 25 connect/disconnect cycles return to the same count. EOF, reset, quit, signals and errors release resources. |
 | No busy loop or zombies | Idle CPU ticks bounded; test subreaper waits for all children. Failed daemonization reaps its child inside the parent. Final manual launch also checks system reaping. |
 | Error handling | Forced mkdir, lock-file open, flock, socket, setsockopt, bind, listen, pipe, fork, setsid, chdir, dup2, sigaction, sigprocmask, select, accept and recv failures checked. Descriptor exhaustion checks logfile-open and pipe errors; actual occupied-port failure also checked. |
-| Coplien equivalent and explainability | Both resource-owning classes disable copying; destructors release resources. README explains each system call, success/failure behavior and ownership. |
+| Coplien equivalent and explainability | Both resource-owning classes privately declare undefined copy constructors and assignment operators for C++98; destructors release resources. README explains each system call, success/failure behavior and ownership. |
 | Final build and Git checkpoints | Build/cleanup targets verified; phase checkpoints committed. Implementation, tests and evaluation notes included in Git. |
 
 ## Reproduce

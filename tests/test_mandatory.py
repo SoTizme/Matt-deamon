@@ -153,15 +153,35 @@ def build():
     timestamp = Path(BINARY).stat().st_mtime_ns
     make()
     require(Path(BINARY).stat().st_mtime_ns == timestamp, "make relinks needlessly")
+    object_files = [ROOT / name for name in [
+        "main.o", "include/Tintin_reporter.o", "daemon/MattDaemon.o", "daemon/Server.o"
+    ]]
+    header = ROOT / "daemon/MattDaemon.hpp"
+    previous_times = (header.stat().st_atime_ns, header.stat().st_mtime_ns)
+    try:
+        time.sleep(0.02)
+        header.touch()
+        make()
+        require(Path(BINARY).stat().st_mtime_ns != timestamp,
+                "header dependency did not rebuild the executable")
+    finally:
+        os.utime(header, ns=previous_times)
     make("clean")
-    require(Path(BINARY).exists() and not (ROOT / "build").exists(), "clean rule")
+    require(Path(BINARY).exists()
+            and all(not p.exists() and not p.with_suffix(".d").exists()
+                    for p in object_files), "clean rule")
     make("fclean")
     require(not Path(BINARY).exists(), "fclean rule")
     make("-j4")
-    passed("all, clean, fclean, re, parallel build and incremental make")
-    sources = "".join(p.read_text() for p in (ROOT / "src").glob("*.cpp"))
+    passed("all, clean, fclean, re, parallel build, incremental make and header dependencies")
+    source_files = [ROOT / "main.cpp"]
+    for directory in ["daemon", "include"]:
+        source_files.extend((ROOT / directory).glob("*.cpp"))
+    require(len(source_files) == 4, "production source layout is incomplete")
+    sources = "".join(p.read_text() for p in source_files)
+    require("-std=c++98" in (ROOT / "Makefile").read_text(), "C++98 flag missing")
     require(not re.search(r"\bdaemon\s*\(", sources), "forbidden daemon() call")
-    passed("C++ build uses warnings as errors and no daemon()")
+    passed("C++98 build uses warnings as errors and no daemon()")
 
 
 def root_and_network():

@@ -1,29 +1,45 @@
-NAME := Matt_daemon
-CXX := c++
-CPPFLAGS := -Iinc
-CXXFLAGS := -std=c++11 -Wall -Wextra -Werror
-SRC := src/main.cpp src/MattDaemon.cpp src/Tintin_reporter.cpp
-OBJ := $(SRC:src/%.cpp=build/%.o)
-DEP := $(OBJ:.o=.d)
+NAME = Matt_daemon
 
-.PHONY: all clean fclean re
+FILES = main.cpp
+
+IFILES = Tintin_reporter.cpp
+IHFILES = Tintin_reporter.hpp
+
+DFILES = MattDaemon.cpp Server.cpp
+DHFILES = MattDaemon.hpp
+
+IFILES := $(addprefix include/, $(IFILES))
+IHFILES := $(addprefix include/, $(IHFILES))
+
+DFILES := $(addprefix daemon/, $(DFILES))
+DHFILES := $(addprefix daemon/, $(DHFILES))
+
+CC = c++
+
+FLAGS = -Wall -Wextra -Werror -std=c++98
+
+OBJS = $(FILES:.cpp=.o) $(IFILES:.cpp=.o) $(DFILES:.cpp=.o)
+DEPS = $(OBJS:.o=.d)
 
 all: $(NAME)
 
-$(NAME): $(OBJ)
-	$(CXX) $(CXXFLAGS) $(OBJ) -o $@
+%.o: %.cpp Makefile
+	$(CC) $(FLAGS) -MMD -MP -c $< -o $@
 
-build/%.o: src/%.cpp
-	@mkdir -p build
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
+$(NAME): $(OBJS)
+	$(CC) $(FLAGS) $(OBJS) -o $(NAME)
 
 clean:
-	rm -rf build
+	@echo "Cleaning object files"
+	@rm -f $(OBJS) $(DEPS)
 
 fclean: clean
-	rm -f $(NAME)
+	@echo "Cleaning executable file"
+	@rm -f $(NAME)
 
 re: fclean
 	$(MAKE) all
 
--include $(DEP)
+-include $(DEPS)
+
+.PHONY: all clean fclean re

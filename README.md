@@ -1,8 +1,31 @@
 # Matt_daemon
 
-A small C++11 daemon for the mandatory 42 subject. Production code consists of
+A small C++98 daemon for the mandatory 42 subject. Production code consists of
 `main`, `MattDaemon` and `Tintin_reporter`; it uses POSIX calls, no threads and
 no daemon framework.
+
+## Code style and layout
+
+The style reference is the files marked `By: shilal` in
+[SoTizme/Webserv](https://github.com/SoTizme/Webserv/tree/6cbbabda5ac64ebee0a4042f0932b6a00db0d5e7),
+especially `main.cpp`, `Client.hpp`, `Client.cpp` and `Request.cpp`.
+Production files use 42 headers, plain member names, camelCase methods,
+explicit constructors/destructors and colocated class headers. Like Webserv's
+[Makefile](https://github.com/SoTizme/Webserv/blob/6cbbabda5ac64ebee0a4042f0932b6a00db0d5e7/Makefile),
+the build uses `c++`, `-Wall -Wextra -Werror -std=c++98`, grouped file lists
+and `addprefix`. Generated header dependencies keep incremental builds correct.
+C++98 is a project choice; subject version 4.3 permits any C++ version and
+leaves file naming and layout free.
+
+```text
+main.cpp                       root check and entry point
+daemon/MattDaemon.hpp          daemon class and resource ownership
+daemon/MattDaemon.cpp          locking, signals, detachment and lifecycle
+daemon/Server.cpp              TCP methods of the same daemon class
+include/Tintin_reporter.hpp    reporter class
+include/Tintin_reporter.cpp    logfile and timestamps
+tests/                        mandatory integration checks
+```
 
 ## Build and use
 
@@ -101,7 +124,8 @@ unlocks the shared lock after forking, which would also unlock the child's lock.
 
 The reporter appends and flushes every entry, uses local-time timestamps, and
 reports failures formatting or writing a log. Resource-owning classes disable
-copying under C++11, giving each resource one owner.
+copying through private, undefined copy constructors and assignment operators,
+giving each resource one owner in C++98.
 
 SIGKILL and SIGSTOP cannot be caught, blocked or handled. Linux/glibc's reserved
 signal numbers are skipped when `sigaction` rejects them. Externally delivered
