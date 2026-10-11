@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   main.cpp                                           :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: shilal <shilal@student.42.fr>              +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/10/08 00:03:47 by shilal            #+#    #+#             */
-/*   Updated: 2026/10/08 00:03:47 by shilal           ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "daemon/MattDaemon.hpp"
 
 #include <cerrno>
@@ -22,18 +10,17 @@
 #include <unistd.h>
 
 int main() {
-	if (geteuid() != 0) {
-		std::cerr << "Matt_daemon: root privileges required." << std::endl;
-		return 1;
-	}
+	// if (geteuid() != 0) {
+	// 	std::cerr << "Matt_daemon: root privileges required." << std::endl;
+	// 	return 1;
+	// }
 	try {
 		// Reserve descriptors 0..2 before acquiring resources; dup2 must not
 		// replace a lock, log or server descriptor when the caller closed stdio.
 		for (int fd = 0; fd < 3; ++fd) {
-			if (fcntl(fd, F_GETFD) == -1
-				&& (errno != EBADF || ::open("/dev/null", O_RDWR) == -1))
-				throw std::runtime_error(std::string("Can't prepare stdio: ")
-										 + std::strerror(errno));
+			if (fcntl(fd, F_GETFD) == -1 && (errno != EBADF || ::open("/dev/null", O_RDWR) == -1)) {
+				throw std::runtime_error(std::string("Can't prepare stdio: ") + std::strerror(errno));
+			}
 		}
 		MattDaemon daemon;
 		daemon.run();

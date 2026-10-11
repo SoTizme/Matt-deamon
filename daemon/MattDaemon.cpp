@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   MattDaemon.cpp                                     :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: shilal <shilal@student.42.fr>              +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/10/08 00:03:47 by shilal            #+#    #+#             */
-/*   Updated: 2026/10/08 00:03:47 by shilal           ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "MattDaemon.hpp"
 
 #include <cerrno>
@@ -79,17 +67,18 @@ MattDaemon::~MattDaemon() {
 
 void MattDaemon::acquireLock() {
 	lockFd = ::open(LOCK_PATH, O_CREAT | O_RDWR | O_CLOEXEC, 0644);
+
 	if (lockFd == -1)
 		throw systemError(std::string("Can't open :") + LOCK_PATH);
 	if (flock(lockFd, LOCK_EX | LOCK_NB) == -1)
-		throw systemError(std::string("Can't open :") + LOCK_PATH
-						  + " (exclusive lock)");
+		throw systemError(std::string("Can't open :") + LOCK_PATH  + " (exclusive lock)");
 }
 
 bool MattDaemon::daemonize() {
 	int startup[2];
 	if (pipe(startup) == -1)
 		throw systemError("pipe");
+
 	const pid_t child = fork();
 	if (child == -1) {
 		const int savedError = errno;
