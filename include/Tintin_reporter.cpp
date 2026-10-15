@@ -6,16 +6,21 @@
 #include <stdexcept>
 #include <sys/stat.h>
 
+// namespace {
+//     const char *const LOG_DIRECTORY = "/var/log/matt_daemon";
+//     const char *const LOG_PATH = "/var/log/matt_daemon/matt_daemon.log";
+// }
+
 namespace {
-const char *const LOG_DIRECTORY = "/var/log/matt_daemon";
-const char *const LOG_PATH = "/var/log/matt_daemon/matt_daemon.log";
+    const char *const LOG_DIRECTORY = "./logs";
+    const char *const LOG_PATH = "./logs/matt_daemon.log";
 }
 
 Tintin_reporter::Tintin_reporter() {}
 
 Tintin_reporter::~Tintin_reporter() {
-	if (outfile.is_open())
-		outfile.close();
+
+	if (outfile.is_open()) outfile.close();
 }
 
 void Tintin_reporter::open() {
@@ -49,13 +54,12 @@ void Tintin_reporter::write(const std::string & level, const std::string & messa
 	const std::time_t now = std::time(NULL);
 	struct tm localTime;
 	char timestamp[32];
-	if (now == static_cast<std::time_t>(-1)
-		|| localtime_r(&now, &localTime) == NULL
-		|| std::strftime(timestamp, sizeof(timestamp), "[%d/%m/%Y-%H:%M:%S]",
-						 &localTime) == 0)
+    bool checkTime = std::strftime(timestamp, sizeof(timestamp), "[%d/%m/%Y-%H:%M:%S]",  &localTime);
+    
+	if (now == static_cast<std::time_t>(-1) || localtime_r(&now, &localTime) == NULL || checkTime == 0)
 		throw std::runtime_error("Failed to format log timestamp.");
-	outfile << timestamp << " [ " << level << " ] - Matt_daemon: "
-			<< message << std::endl;
-	if (!outfile)
+	
+    outfile << timestamp << " [ " << level << " ] - Matt_daemon: " << message << std::endl;
+    if (!outfile)
 		throw std::runtime_error(std::string("Can't write :") + LOG_PATH);
 }

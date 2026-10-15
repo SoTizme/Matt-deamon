@@ -7,7 +7,7 @@
 #include <string>
 
 class MattDaemon {
-	private :
+	private:
 		static const int MAX_CLIENTS = 3;
 		static volatile sig_atomic_t receivedSignal;
 
@@ -35,7 +35,7 @@ class MattDaemon {
 		bool finishMessage(int index, bool newline);
 		void closeClient(int index);
 
-	public :
+	public:
 		MattDaemon();
 		~MattDaemon();
 

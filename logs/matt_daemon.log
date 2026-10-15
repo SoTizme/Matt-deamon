@@ -1,0 +1,47 @@
+[15/10/2026-14:40:48] [ INFO ] - Matt_daemon: Started.
+[15/10/2026-14:40:48] [ INFO ] - Matt_daemon: Creating server.
+[15/10/2026-14:40:48] [ ERROR ] - Matt_daemon: bind port 4242: Address already in use
+[15/10/2026-14:41:19] [ INFO ] - Matt_daemon: Started.
+[15/10/2026-14:41:19] [ INFO ] - Matt_daemon: Creating server.
+[15/10/2026-14:41:19] [ INFO ] - Matt_daemon: Server created.
+[15/10/2026-14:41:19] [ INFO ] - Matt_daemon: Entering Daemon mode.
+[15/10/2026-14:41:19] [ INFO ] - Matt_daemon: started. PID: 133921.
+[15/10/2026-14:44:07] [ INFO ] - Matt_daemon: Client connected.
+[15/10/2026-14:44:09] [ LOG ] - Matt_daemon: User input: hello
+[15/10/2026-14:45:16] [ LOG ] - Matt_daemon: User input: hii daemon 
+[15/10/2026-14:45:18] [ LOG ] - Matt_daemon: User input: fhhe
+[15/10/2026-14:45:19] [ LOG ] - Matt_daemon: User input: ff
+[15/10/2026-14:45:33] [ INFO ] - Matt_daemon: Client connected.
+[15/10/2026-14:45:35] [ LOG ] - Matt_daemon: User input: fflfld
+[15/10/2026-14:45:46] [ LOG ] - Matt_daemon: User input: ffdkdf
+[15/10/2026-14:45:46] [ LOG ] - Matt_daemon: User input: glsg
+[15/10/2026-14:45:48] [ LOG ] - Matt_daemon: User input: gg
+[15/10/2026-14:45:50] [ INFO ] - Matt_daemon: Request quit.
+[15/10/2026-14:45:50] [ INFO ] - Matt_daemon: Client disconnected.
+[15/10/2026-14:45:50] [ INFO ] - Matt_daemon: Client disconnected.
+[15/10/2026-14:45:50] [ INFO ] - Matt_daemon: Server closed.
+[15/10/2026-14:45:50] [ INFO ] - Matt_daemon: Quitting.
+[15/10/2026-14:50:07] [ INFO ] - Matt_daemon: Started.
+[15/10/2026-14:50:07] [ INFO ] - Matt_daemon: Creating server.
+[15/10/2026-14:50:07] [ INFO ] - Matt_daemon: Server created.
+[15/10/2026-14:50:07] [ INFO ] - Matt_daemon: Entering Daemon mode.
+[15/10/2026-14:50:07] [ INFO ] - Matt_daemon: started. PID: 137699.
+[15/10/2026-14:50:26] [ INFO ] - Matt_daemon: Client connected.
+[15/10/2026-14:50:27] [ LOG ] - Matt_daemon: User input: fjjfd
+[15/10/2026-14:50:27] [ LOG ] - Matt_daemon: User input: dkffd
+[15/10/2026-14:50:28] [ INFO ] - Matt_daemon: Client disconnected.
+[15/10/2026-14:50:32] [ INFO ] - Matt_daemon: Client connected.
+[15/10/2026-14:50:49] [ INFO ] - Matt_daemon: Client connected.
+[15/10/2026-14:50:56] [ INFO ] - Matt_daemon: Client connected.
+[15/10/2026-14:51:13] [ LOG ] - Matt_daemon: User input: user 1
+[15/10/2026-14:51:21] [ LOG ] - Matt_daemon: User input: user 2
+[15/10/2026-14:51:25] [ LOG ] - Matt_daemon: User input: user 3
+[15/10/2026-14:51:50] [ INFO ] - Matt_daemon: Client rejected: capacity reached.
+[15/10/2026-17:56:59] [ INFO ] - Matt_daemon: Client disconnected.
+[15/10/2026-17:57:09] [ INFO ] - Matt_daemon: Client disconnected.
+[15/10/2026-18:15:26] [ INFO ] - Matt_daemon: Client connected.
+[15/10/2026-18:15:29] [ INFO ] - Matt_daemon: Request quit.
+[15/10/2026-18:15:29] [ INFO ] - Matt_daemon: Client disconnected.
+[15/10/2026-18:15:29] [ INFO ] - Matt_daemon: Client disconnected.
+[15/10/2026-18:15:29] [ INFO ] - Matt_daemon: Server closed.
+[15/10/2026-18:15:29] [ INFO ] - Matt_daemon: Quitting.

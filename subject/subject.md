@@ -151,6 +151,7 @@ root 6498 99.7 0.0 15172 2164 ? Rs 14:34 43:44 ./Matt_daemon
 [11/01/2016-14:34:58] [ INFO ] - Matt_daemon: started. PID: 6498.
 [11/01/2016-14:35:24] [ INFO ] - Matt_daemon: Signal handler.
 [11/01/2016-14:35:24] [ INFO ] - Matt_daemon: Quitting.
+
 # ./Matt_daemon
 # ./Matt_daemon
 Can't open :/var/lock/matt_daemon.lock

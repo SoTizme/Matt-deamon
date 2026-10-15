@@ -1,6 +1,6 @@
 The main lesson is **how to build a Linux service that runs independently of your terminal, receives work, and shuts down cleanly**.
 
-For your defense, you should be able to explain the program’s lifecycle, justify its system calls, and demonstrate its behavior. The subject explicitly checks `fork`, `chdir`, exclusive `flock`, and signal handling. It also asks you to understand your code and be transparent about AI assistance. :codex-file-citation{path="/home/shilal/Desktop/matt/subject/en.subject.pdf" purpose="source"}
+For your defense, you should be able to explain the program’s lifecycle, justify its system calls, and demonstrate its behavior. The subject explicitly checks `fork`, `chdir`, exclusive `flock`, and signal handling.
 
 A good opening explanation is:
 

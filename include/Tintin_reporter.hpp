@@ -5,7 +5,7 @@
 #include <string>
 
 class Tintin_reporter {
-	private :
+	private:
 		std::ofstream outfile;
 
 		// Streams cannot be shared by copying this reporter.
@@ -14,7 +14,7 @@ class Tintin_reporter {
 
 		void write(const std::string &level, const std::string &message);
 
-	public :
+	public:
 		Tintin_reporter();
 		~Tintin_reporter();
 

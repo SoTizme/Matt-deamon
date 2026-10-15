@@ -10,21 +10,26 @@
 #include <unistd.h>
 
 int main() {
-	// if (geteuid() != 0) {
+
+	// if (geteuid() != 0)
+	// {
 	// 	std::cerr << "Matt_daemon: root privileges required." << std::endl;
 	// 	return 1;
 	// }
-	try {
-		// Reserve descriptors 0..2 before acquiring resources; dup2 must not
-		// replace a lock, log or server descriptor when the caller closed stdio.
-		for (int fd = 0; fd < 3; ++fd) {
-			if (fcntl(fd, F_GETFD) == -1 && (errno != EBADF || ::open("/dev/null", O_RDWR) == -1)) {
+	try
+	{
+		for (int fd = 0; fd < 3; ++fd)
+		{
+			if (fcntl(fd, F_GETFD) == -1 && (errno != EBADF || ::open("/dev/null", O_RDWR) == -1))
+			{
 				throw std::runtime_error(std::string("Can't prepare stdio: ") + std::strerror(errno));
 			}
 		}
 		MattDaemon daemon;
 		daemon.run();
-	} catch (const std::exception & error) {
+	}
+	catch (const std::exception &error)
+	{
 		std::cerr << "Matt_daemon: " << error.what() << std::endl;
 		return 1;
 	}
