@@ -9,7 +9,7 @@
 
 class Server {
 	private:
-		static const int PORT = 8080;
+		static const int PORT = 4242;
 		static const int MAX_CLIENTS = 3;
 
 		Tintin_reporter &reporter;

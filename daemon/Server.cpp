@@ -61,7 +61,7 @@ void Server::create() {
 	address.sin_addr.s_addr = htonl(INADDR_ANY);
 	if (bind(serverFd, reinterpret_cast<struct sockaddr *>(&address),
 			 sizeof(address)) == -1)
-		throw systemError("bind port 8080");
+		throw systemError("bind port 4242");
 	if (listen(serverFd, MAX_CLIENTS) == -1)
 		throw systemError("listen");
 	reporter.info("Server created.");
