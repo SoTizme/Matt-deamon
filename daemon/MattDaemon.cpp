@@ -18,23 +18,29 @@ MattDaemon::~MattDaemon() {
 		close(lockFd);
 }
 
-void MattDaemon::recordSignal(int number) {
-	// Only save the signal here. Normal code will do the cleanup.
+void MattDaemon::recordSignal(int number, siginfo_t *information, void *) {
+	const bool faultSignal = number == SIGSEGV || number == SIGBUS
+		|| number == SIGFPE || number == SIGILL || number == SIGTRAP;
+
+	// A kernel fault cannot safely return to normal execution.
+	if (faultSignal && information != NULL && information->si_code > 0)
+		_exit(128 + number);
+
+	// Signals sent by another process use the normal cleanup path.
 	if (receivedSignal == 0)
 		receivedSignal = number;
 }
 
 void MattDaemon::installSignals() {
 	struct sigaction action = {};
-	action.sa_handler = recordSignal;
+	action.sa_sigaction = recordSignal;
+	action.sa_flags = SA_SIGINFO;
 	if (sigfillset(&action.sa_mask) == -1)
 		throw std::runtime_error("Failed to initialize signal mask.");
 	for (int number = 1; number < NSIG; ++number)
 	{
 		if (number == SIGKILL || number == SIGSTOP)
 			continue;
-		// If a fatal signal happens again, let the system stop the process.
-		action.sa_flags = (number == SIGSEGV || number == SIGBUS || number == SIGFPE || number == SIGILL || number == SIGTRAP) ? SA_RESETHAND : 0;
 		if (sigaction(number, &action, NULL) == -1 && errno != EINVAL)
 		{
 			throw std::runtime_error(std::string("sigaction: ") + std::strerror(errno));

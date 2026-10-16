@@ -22,7 +22,7 @@ class MattDaemon {
 		MattDaemon(const MattDaemon &other);
 		MattDaemon &operator=(const MattDaemon &other);
 
-		static void recordSignal(int number);
+		static void recordSignal(int number, siginfo_t *information, void *context);
 		void installSignals();
 		std::runtime_error systemError(const std::string &action);
 		void acquireLock();
