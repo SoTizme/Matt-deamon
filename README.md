@@ -1,180 +1,273 @@
 # Matt_daemon
 
-## About
+A small **Linux daemon and TCP server** developed as part of the **42 Matt_daemon project**.
 
-Matt_daemon is a C++98 school project that introduces Unix daemons, process
-management, TCP sockets, file locking, logging, and signal handling.
+---
 
-The program runs in the background and listens for messages on TCP port `4242`.
-Every received message is written to a log file. The exact message `quit` stops
-the daemon.
+## Project Overview
 
-## Features
+**Matt_daemon** is an educational C++98 project that runs silently in the background and listens for TCP connections on port **4242**.
+
+The goal of the project is to learn how Unix services work, including:
+
+- Creating a background process
+- Managing TCP clients
+- Writing timestamped logs
+- Handling Unix signals
+- Preventing multiple instances
+- Cleaning up system resources correctly
+
+The daemon accepts up to three clients at the same time. Every received message is written to a log file, and the exact message `quit` stops the service.
+
+---
+
+## Key Features
 
 - Runs as a background daemon
-- Accepts connections on TCP port `4242`
-- Supports up to three clients at the same time
-- Writes timestamped messages to a log file
-- Uses an exclusive lock to prevent multiple instances
-- Stops cleanly after receiving `quit` or a catchable signal
-- Uses POSIX system calls without the `daemon()` function
+- Listens on TCP port `4242`
+- Accepts up to three clients at once
+- Logs client messages and daemon events
+- Uses a lock file to allow only one running instance
+- Handles catchable signals and shuts down cleanly
+- Supports messages split across several TCP reads
+- Uses non-blocking sockets with `select()`
+- Written without using the `daemon()` helper function
 
-## Project structure
+---
 
-```text
+## Technical Choices
+
+| Category | Choice |
+| --- | --- |
+| Language | C++98 |
+| Platform | Linux |
+| Network | TCP/IPv4 |
+| Port | 4242 |
+| Client limit | 3 |
+| I/O handling | Non-blocking sockets and `select()` |
+| Logging | Custom `Tintin_reporter` class |
+| Instance control | `flock()` |
+| Process mode | Unix daemon |
+
+---
+
+## Repository Structure
+
+~~~txt
 .
-├── main.cpp                       Program entry point
-├── Makefile                       Compilation rules
+├── main.cpp
+├── Makefile
+│
 ├── daemon/
-│   ├── MattDaemon.hpp             Daemon class declaration
-│   ├── MattDaemon.cpp             Lifecycle, locking and signals
-│   └── Server.cpp                 TCP server and client handling
+│   ├── MattDaemon.hpp
+│   ├── MattDaemon.cpp
+│   ├── Server.hpp
+│   └── Server.cpp
+│
 └── include/
-    ├── Tintin_reporter.hpp        Logger class declaration
-    └── Tintin_reporter.cpp        Log formatting and file output
-```
+    ├── Tintin_reporter.hpp
+    └── Tintin_reporter.cpp
+~~~
+
+- `MattDaemon` manages the lock, signals, and daemon startup.
+- `Server` manages connections and client messages.
+- `Tintin_reporter` creates and writes the log file.
+
+---
 
 ## Requirements
 
-The project must be run on Linux. You need:
+You need:
 
+- A Linux system
 - A C++ compiler
 - `make`
 - Root privileges
-- `nc` (netcat) to connect to the server
-- `ss` or `netstat` to inspect the listening port
+- `nc` (netcat) for testing
+- `ss` or `netstat` to inspect the port
 
-## Compilation
+---
 
-Compile the project with:
+## How to Use the Project
 
-```sh
+### 1. Build the program
+
+~~~sh
 make
-```
+~~~
 
 This creates the executable:
 
-```text
+~~~txt
 Matt_daemon
-```
+~~~
 
-Available Makefile rules:
+### 2. Start the daemon
 
-```sh
-make          # Build the executable
-make clean    # Remove object files
-make fclean   # Remove object files and the executable
-make re       # Rebuild the project from scratch
-```
+The program needs root privileges because it creates files under `/var/log` and `/var/lock`.
 
-## Running the daemon
-
-The daemon needs root privileges because it creates files under `/var/log` and
-`/var/lock`.
-
-```sh
+~~~sh
 sudo ./Matt_daemon
-```
+~~~
 
-After successful startup, the parent process exits and the daemon continues in
-the background.
+When startup succeeds, the terminal returns and the daemon continues running in the background.
 
-Check that it is running:
+### 3. Check that it is running
 
-```sh
+~~~sh
 pgrep -a Matt_daemon
 sudo ss -ltnp | grep 4242
-```
+~~~
 
-Only one instance can run at a time. Starting the program again while it is
-already running returns an error because the lock is already held.
+### 4. Connect to the server
 
-## Connecting to the server
+Open another terminal and run:
 
-Open a client connection with netcat:
-
-```sh
+~~~sh
 nc localhost 4242
-```
+~~~
 
-Type a message and press Enter:
+Write a message and press Enter:
 
-```text
+~~~txt
 hello
-this is a test
-```
+this is my first test
+~~~
 
-Messages from connected clients are added to the log file. A maximum of three
-clients can be active at the same time.
+The messages will be saved in the log.
 
-## Stopping the daemon
+### 5. Read the log
 
-Send the exact message below from a connected client:
+~~~sh
+sudo tail -f /var/log/matt_daemon/matt_daemon.log
+~~~
 
-```text
+Example output:
+
+~~~txt
+[16/10/2026-14:20:10] [ INFO ] - Matt_daemon: Started.
+[16/10/2026-14:20:10] [ INFO ] - Matt_daemon: Server created.
+[16/10/2026-14:20:15] [ INFO ] - Matt_daemon: Client connected.
+[16/10/2026-14:20:20] [ LOG ] - Matt_daemon: User input: hello
+~~~
+
+Press `Ctrl+C` to stop following the log. This does not stop the daemon.
+
+### 6. Stop the daemon
+
+From a connected netcat client, send the exact message:
+
+~~~txt
 quit
-```
+~~~
 
-The comparison is case-sensitive. Messages such as `QUIT`, `quit `, or `quite`
-are logged as normal messages and do not stop the daemon.
+The word is case-sensitive. For example, `QUIT`, `quit `, and `quite` are normal messages and do not stop the daemon.
 
-The daemon can also be stopped with a signal:
+You can also stop it with a signal:
 
-```sh
+~~~sh
 sudo kill -TERM "$(pgrep -x Matt_daemon)"
-```
+~~~
 
-`SIGKILL` and `SIGSTOP` cannot be caught or handled by any program.
+---
 
-## Log and lock files
+## Testing Examples
 
-Messages and daemon events are written to:
+### Test the single-instance lock
 
-```text
-/var/log/matt_daemon/matt_daemon.log
-```
+Start the daemon, then try to start it again:
 
-Read the latest entries with:
+~~~sh
+sudo ./Matt_daemon
+~~~
 
-```sh
-sudo tail -20 /var/log/matt_daemon/matt_daemon.log
-```
+The second instance should fail because the first instance owns the lock.
 
-Example:
+### Test several clients
 
-```text
-[07/10/2026-12:34:56] [ INFO ] - Matt_daemon: Started.
-[07/10/2026-12:35:03] [ LOG ] - Matt_daemon: User input: hello
-[07/10/2026-12:35:10] [ INFO ] - Matt_daemon: Request quit.
-[07/10/2026-12:35:10] [ INFO ] - Matt_daemon: Quitting.
-```
+Open three terminals and run this command in each one:
 
-The instance lock is stored at:
+~~~sh
+nc localhost 4242
+~~~
 
-```text
-/var/lock/matt_daemon.lock
-```
+All three clients can send messages. A fourth connection is rejected until one client disconnects.
 
-The lock file may remain after shutdown. The program uses the active kernel lock,
-not the existence of the file, to determine whether another instance is running.
+### Test signal handling
 
-## Program flow
+~~~sh
+sudo kill -INT "$(pgrep -x Matt_daemon)"
+~~~
 
-```text
+The daemon records the signal in the log and closes its sockets.
+
+---
+
+## Log and Lock Files
+
+| Purpose | Path |
+| --- | --- |
+| Log file | `/var/log/matt_daemon/matt_daemon.log` |
+| Lock file | `/var/lock/matt_daemon.lock` |
+
+The lock file can remain after the daemon stops. This is normal: the program checks the active kernel lock, not only whether the file exists.
+
+---
+
+## Makefile Commands
+
+~~~sh
+make          # Build the project
+make clean    # Remove object files
+make fclean   # Remove object files and the executable
+make re       # Rebuild everything
+~~~
+
+---
+
+## Program Flow
+
+~~~txt
 Check root privileges
         |
-Acquire the exclusive lock
+Acquire the lock
         |
-Open the log and create the TCP server
+Open the log and create the server
         |
 Fork and detach from the terminal
         |
 Wait for clients with select()
         |
-Log messages until quit or a signal is received
+Log messages until "quit" or a signal
         |
 Close sockets and release resources
-```
+~~~
 
-The server uses `select()` so one process can manage the listening socket and up
-to three client sockets without threads.
+---
+
+## Learning Objectives
+
+This project demonstrates:
+
+- Unix process management
+- Daemon creation with `fork()` and `setsid()`
+- TCP socket programming
+- Non-blocking I/O
+- Multiplexing with `select()`
+- Safe signal handling
+- File locking with `flock()`
+- Resource cleanup with C++ classes
+
+---
+
+## Notes
+
+- This project is intended for Linux.
+- It must be started with root privileges.
+- Only the exact message `quit` stops the daemon through a client.
+- `SIGKILL` and `SIGSTOP` cannot be caught by any program.
+- This is an educational project, not a production network service.
+
+---
+
+Developed as part of the **42 Matt_daemon Project**.

@@ -1,4 +1,4 @@
-#include "MattDaemon.hpp"
+#include "Server.hpp"
 
 #include <cerrno>
 #include <cstring>
@@ -8,22 +8,56 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-void MattDaemon::createServer()
-{
+Server::Server(Tintin_reporter &log) : reporter(log), serverFd(-1) {
+	for (int index = 0; index < MAX_CLIENTS; ++index) {
+		clients[index] = -1;
+		continued[index] = false;
+	}
+}
+
+Server::~Server() {
+	closeAll();
+}
+
+std::runtime_error Server::systemError(const std::string &action) const {
+	return std::runtime_error(action + ": " + std::strerror(errno));
+}
+
+void Server::setNonBlocking(int fd, const std::string &name) {
+	// Read the old flags, then add O_NONBLOCK without removing them.
+	int flags;
+	do {
+		flags = fcntl(fd, F_GETFL);
+	} while (flags == -1 && errno == EINTR);
+	if (flags == -1)
+		throw systemError("fcntl " + name + " F_GETFL");
+
+	int result;
+	do {
+		result = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+	} while (result == -1 && errno == EINTR);
+	if (result == -1)
+		throw systemError("fcntl " + name + " F_SETFL");
+}
+
+void Server::create() {
 	reporter.info("Creating server.");
 	serverFd = socket(AF_INET, SOCK_STREAM, 0);
 	if (serverFd == -1)
 		throw systemError("socket");
+	// select() cannot watch a descriptor above this limit.
 	if (serverFd >= FD_SETSIZE)
 		throw std::runtime_error("Server descriptor exceeds select capacity.");
+
+	// Allow the same port to be used again after a restart.
 	const int reuse = 1;
 	if (setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1)
 		throw systemError("setsockopt");
-	if (fcntl(serverFd, F_SETFL, O_NONBLOCK) == -1)
-		throw systemError("fcntl server");
+
+	setNonBlocking(serverFd, "server");
 	struct sockaddr_in address = {};
 	address.sin_family = AF_INET;
-	address.sin_port = htons(8080);
+	address.sin_port = htons(PORT);
 	address.sin_addr.s_addr = htonl(INADDR_ANY);
 	if (bind(serverFd, reinterpret_cast<struct sockaddr *>(&address),
 			 sizeof(address)) == -1)
@@ -33,34 +67,31 @@ void MattDaemon::createServer()
 	reporter.info("Server created.");
 }
 
-void MattDaemon::acceptClient()
-{
+void Server::acceptClient() {
 	const int client = accept(serverFd, NULL, NULL);
-	if (client == -1)
-	{
+	if (client == -1) {
 		if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK || errno == ECONNABORTED)
 			return;
 		throw systemError("accept");
 	}
 	int index = 0;
-	while (index < MAX_CLIENTS && clients[index] != -1)
+	while (index < MAX_CLIENTS && clients[index] != -1){
 		++index;
-	if (index == MAX_CLIENTS || client >= FD_SETSIZE)
-	{
+	}
+	// Reject this connection when all three client slots are full.
+	if (index == MAX_CLIENTS || client >= FD_SETSIZE){
 		close(client);
 		reporter.info("Client rejected: capacity reached.");
 		return;
 	}
 	clients[index] = client;
-	if (fcntl(client, F_SETFL, O_NONBLOCK) == -1)
-		throw systemError("fcntl client");
+	setNonBlocking(client, "client");
 	pending[index].clear();
 	continued[index] = false;
 	reporter.info("Client connected.");
 }
 
-void MattDaemon::closeClient(int index)
-{
+void Server::closeClient(int index){
 	close(clients[index]);
 	clients[index] = -1;
 	pending[index].clear();
@@ -68,13 +99,13 @@ void MattDaemon::closeClient(int index)
 	reporter.info("Client disconnected.");
 }
 
-bool MattDaemon::finishMessage(int index, bool newline)
-{
+bool Server::finishMessage(int index, bool newline){
 	std::string &message = pending[index];
+
 	if (newline && !message.empty() && message[message.size() - 1] == '\r')
 		message.erase(message.size() - 1);
-	if (!continued[index] && message == "quit")
-	{
+	// Stop only when the full message is exactly "quit".
+	if (!continued[index] && message == "quit"){
 		message.clear();
 		reporter.info("Request quit.");
 		return false;
@@ -85,12 +116,10 @@ bool MattDaemon::finishMessage(int index, bool newline)
 	return true;
 }
 
-bool MattDaemon::readClient(int index)
-{
+bool Server::readClient(int index){
 	char buffer[4096];
 	const ssize_t count = recv(clients[index], buffer, sizeof(buffer), 0);
-	if (count == -1)
-	{
+	if (count == -1){
 		if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
 			return true;
 		reporter.error(std::string("recv: ") + std::strerror(errno));
@@ -98,24 +127,20 @@ bool MattDaemon::readClient(int index)
 		closeClient(index);
 		return keepRunning;
 	}
-	if (count == 0)
-	{
+	// recv() returns 0 when the client disconnects.
+	if (count == 0){
 		const bool keepRunning = pending[index].empty() || finishMessage(index, false);
 		closeClient(index);
 		return keepRunning;
 	}
-	for (ssize_t pos = 0; pos < count; ++pos)
-	{
-		if (buffer[pos] == '\n')
-		{
+	for (ssize_t pos = 0; pos < count; ++pos){
+		if (buffer[pos] == '\n'){
 			if (!finishMessage(index, true))
 				return false;
 		}
-		else
-		{
-			// Bound memory while preserving arbitrarily long input in chunks.
-			if (pending[index].size() == 65536)
-			{
+		else{
+			// Write very long input in parts to limit memory use.
+			if (pending[index].size() == 65536){
 				reporter.input(pending[index]);
 				pending[index].clear();
 				continued[index] = true;
@@ -126,41 +151,65 @@ bool MattDaemon::readClient(int index)
 	return true;
 }
 
-void MattDaemon::serve()
-{
+void Server::serve(const volatile sig_atomic_t &receivedSignal){
 	while (receivedSignal == 0)
 	{
 		fd_set readable;
 		FD_ZERO(&readable);
 		FD_SET(serverFd, &readable);
 		int highest = serverFd;
-		for (int index = 0; index < MAX_CLIENTS; ++index)
-		{
-			if (clients[index] != -1)
-			{
+		for (int index = 0; index < MAX_CLIENTS; ++index){
+			if (clients[index] != -1){
 				FD_SET(clients[index], &readable);
 				if (clients[index] > highest) highest = clients[index];
 			}
 		}
-		// Recreated each iteration: select may modify its timeout.
-		// A bounded wait covers a signal arriving just before select starts.
+		// select() changes timeout, so reset it before each call.
 		struct timeval timeout = {1, 0};
 		const int result = select(highest + 1, &readable, NULL, NULL, &timeout);
-		if (result == -1)
-		{
+		if (result == -1){
 			if (errno == EINTR)
 				continue;
 			throw systemError("select");
 		}
 		if (receivedSignal != 0)
 			break;
-		// Service existing clients before admitting a queued connection.
-		for (int index = 0; index < MAX_CLIENTS; ++index)
-		{
+		// Read clients first so a disconnected slot can be reused.
+		for (int index = 0; index < MAX_CLIENTS; ++index) {
 			if (clients[index] != -1 && FD_ISSET(clients[index], &readable) && !readClient(index))
 				return;
 		}
 		if (FD_ISSET(serverFd, &readable))
 			acceptClient();
+	}
+}
+
+// Save unfinished messages and log a normal shutdown.
+void Server::shutdown(){
+	for (int index = 0; index < MAX_CLIENTS; ++index) {
+		if (clients[index] != -1){
+			if (!pending[index].empty())
+				finishMessage(index, false);
+			closeClient(index);
+		}
+	}
+	if (serverFd != -1) {
+		::close(serverFd);
+		serverFd = -1;
+		reporter.info("Server closed.");
+	}
+}
+
+// Close anything still open without writing to the log.
+void Server::closeAll(){
+	for (int index = 0; index < MAX_CLIENTS; ++index){
+		if (clients[index] != -1){
+			::close(clients[index]);
+			clients[index] = -1;
+		}
+	}
+	if (serverFd != -1) {
+		::close(serverFd);
+		serverFd = -1;
 	}
 }
